@@ -1,7 +1,5 @@
 # Vision to Risk
 
-**From Vision to Risk: Explaining Motorcycle Hotspot Risk Using Vision–Language Attribute Extraction**
-
 This repository contains the **data processing, analysis, and modelling code** used in the *Vision to Risk* study. The project integrates **network-based hotspot detection** with **vision-based infrastructure feature extraction** from street-level imagery to analyse motorcycle crash risk.
 
 The workflow combines:
