@@ -1,4 +1,4 @@
-# VisionToRisk
+# Street view-based infrastructure assessment of motorcycle hotspots: A national road network analysis in Thailand
 
 Code accompanying the paper:
 
@@ -68,8 +68,13 @@ The analysis uses both R and Python notebooks/scripts. Core geospatial and model
 If you use this repository, please cite the paper:
 
 ```text
-Street view-based infrastructure assessment of motorcycle hotspots:
-A national road network analysis in Thailand.
-Accident Analysis & Prevention, 2026.
-https://doi.org/10.1016/j.aap.2026.108706
+@article{jongwiriyanurak_2026_street,
+  title   = {Street view-based infrastructure assessment of motorcycle hotspots: A national road network analysis in Thailand},
+  author  = {Jongwiriyanurak, Natchapon and Haworth, James and Ameen, Horia and Christie, Nicola and Soil{\'a}n, Mario},
+  journal = {Accident Analysis \& Prevention},
+  year    = {2026},
+  pages   = {108706},
+  doi     = {10.1016/j.aap.2026.108706},
+  url     = {https://doi.org/10.1016/j.aap.2026.108706}
+}
 ```
