@@ -21,7 +21,6 @@ library(stringr)
 
 # ---- config ----
 options(digits = 20)
-setwd("/Users/stupong/Library/CloudStorage/OneDrive-UniversityCollegeLondon/Natchapon PhD/Upgrading/PhD/NKDE")
 
 # Output folder
 out_dir <- "out/nkde"
@@ -49,7 +48,7 @@ network_path   <- "roadnetwork/tha_highway_coverage.gpkg"
 accidents_path <- "DOH/motorcycle_accidents_TRAMS.shp"
 
 # Province boundaries (POLYGON/MULTIPOLYGON)
-provinces_path <- "/Users/stupong/Library/CloudStorage/OneDrive-SharedLibraries-UniversityCollegeLondon(2)/SpaceTimeLab - Natchapon PhD - Natchapon PhD/Upgrading/PhD/traffic_incident_analysis/data/boundary/TH_Province.shp"
+provinces_path <- "boundary/TH_Province.shp"
 
 # Sample files (POINTS along the network at fixed spacing).
 # Adapt these filenames if yours differ.
@@ -149,7 +148,7 @@ run_nkde_one <- function(prov_row, samples_sf, bw) {
   if (is.null(w)) w <- rep(1, nrow(acc_sub))
   w[!is.finite(w) | is.na(w)] <- 1
   
-  # Compute NKDE (safe settings: dense output, no tiling while you debug)
+  # Compute NKDE at point samples.
   dens <- nkde.mc(
     lines    = net_sub,      # network subset (LINESTRING)
     events   = acc_sub,      # POINTS within buffered province
@@ -157,7 +156,7 @@ run_nkde_one <- function(prov_row, samples_sf, bw) {
     w        = w,            # weights for events
     bw       = bw,
     kernel   = nkde_kernel,  # "quartic"
-    div      = "lixel",      # per-segment density proxy; ok to use with point samples
+    div      = "bw",
     method   = nkde_method,  # "simple"
     digits   = nkde_digits,
     sparse   = nkde_sparse,  # keep zeroes to avoid join-length errors
@@ -215,133 +214,3 @@ for (pi in seq_len(nrow(provs))) {
 }
 
 message("Done. Densities saved per province & parameter combo.")
-
-# ---- helper: run NKDE for one province, one sample set, one bw ----
-run_nkde_one <- function(prov_row, samples_sf, bw) {
-  # Buffered polygon for input selection (edge handling)
-  prov_buf <- st_buffer(st_geometry(prov_row), dist = prov_buffer_m)
-  prov_buf <- st_as_sf(prov_buf) |> st_set_crs(st_crs(prov_row))
-  
-  # Subset inputs to buffer
-  net_sub <- network[st_intersects(network, prov_buf, sparse = FALSE), , drop = FALSE]
-  if (nrow(net_sub) == 0) return(NULL)
-  
-  acc_sub <- accidents[st_intersects(accidents, prov_buf, sparse = FALSE), , drop = FALSE]
-  # If no events in buffer, return zeros for samples inside province
-  smp_in_prov <- samples_sf[st_intersects(samples_sf, prov_row, sparse = FALSE), , drop = FALSE]
-  if (nrow(acc_sub) == 0) {
-    if (nrow(smp_in_prov) == 0) return(NULL)
-    smp_in_prov$density <- 0
-    return(smp_in_prov)
-  }
-  
-  # Samples used for computation (buffered), then we’ll keep only those inside the province
-  smp_buf <- samples_sf[st_intersects(samples_sf, prov_buf, sparse = FALSE), , drop = FALSE]
-  if (nrow(smp_buf) == 0) return(NULL)
-  
-  # Robust weights
-  w <- acc_sub$weight
-  if (is.null(w)) w <- rep(1, nrow(acc_sub))
-  w[!is.finite(w) | is.na(w) | w <= 0] <- 1
-  
-  # ---- NKDE: IMPORTANT: div = "bw" when samples are POINTS ----
-  dens <- nkde.mc(
-    lines    = net_sub,
-    events   = acc_sub,
-    samples  = smp_buf,     # POINTS
-    w        = w,
-    bw       = bw,
-    kernel   = nkde_kernel, # "quartic"
-    div      = "bw",        # <— change here
-    method   = nkde_method, # "simple" is fine
-    digits   = nkde_digits,
-    sparse   = nkde_sparse, # keep zeros so lengths match
-    verbose  = TRUE
-  )
-  
-  smp_buf$density <- as.numeric(dens)
-  
-  # Keep only samples INSIDE the (unbuffered) province for output
-  smp_out <- smp_buf[st_intersects(smp_buf, prov_row, sparse = FALSE), , drop = FALSE]
-  if (nrow(smp_out) == 0) return(NULL)
-  
-  smp_out
-}
-
-
-# ---- resume from province 41 ---- error (Lampang 41, TAK 51) 38 บึงกาฬ NONG KHAI
-provs <- provinces[27, ]   # uncomment to start from 41
-provs$PROV_NAME <- "Bueng Kan"
-
-provs
-
-
-# run_nkde_one <- function(prov_row, samples_sf, bw) {
-#   # Buffered polygon for input selection (edge handling)
-#   prov_buf <- st_buffer(st_geometry(prov_row), dist = prov_buffer_m)
-#   prov_buf <- st_as_sf(prov_buf) |> st_set_crs(st_crs(prov_row))
-#   
-#   # Subset network to buffer
-#   net_sub <- network[st_intersects(network, prov_buf, sparse = FALSE), , drop = FALSE]
-#   if (nrow(net_sub) == 0) return(NULL)
-#   
-#   # ---- SANITISE LINES ----
-#   net_sub <- net_sub |>
-#     st_make_valid() |>
-#     st_collection_extract("LINESTRING", warn = FALSE)
-#   # drop empties, zero-length, or 1-node lines
-#   net_sub <- net_sub[!st_is_empty(net_sub), , drop = FALSE]
-#   net_sub <- net_sub[as.numeric(st_length(net_sub)) > 0, , drop = FALSE]
-#   net_sub <- net_sub[st_npoints(net_sub) >= 2, , drop = FALSE]
-#   if (nrow(net_sub) == 0) return(NULL)
-#   
-#   # Avoid name clash with spNetwork’s default edge weight "length"
-#   if ("length" %in% names(net_sub)) {
-#     names(net_sub)[names(net_sub) == "length"] <- "length_attr"
-#   }
-#   
-#   # Subset incidents & samples to buffer
-#   acc_sub <- accidents[st_intersects(accidents, prov_buf, sparse = FALSE), , drop = FALSE]
-#   smp_in_prov <- samples_sf[st_intersects(samples_sf, prov_row,  sparse = FALSE), , drop = FALSE]
-#   if (nrow(acc_sub) == 0) {
-#     if (nrow(smp_in_prov) == 0) return(NULL)
-#     smp_in_prov$density <- 0
-#     return(smp_in_prov)
-#   }
-#   smp_buf <- samples_sf[st_intersects(samples_sf, prov_buf, sparse = FALSE), , drop = FALSE]
-#   if (nrow(smp_buf) == 0) return(NULL)
-#   
-#   # Robust weights
-#   w <- acc_sub$weight
-#   if (is.null(w)) w <- rep(1, nrow(acc_sub))
-#   w[!is.finite(w) | is.na(w) | w <= 0] <- 1
-#   
-#   # NKDE at POINT samples -> use div="bw"
-#   dens <- nkde.mc(
-#     lines    = net_sub,
-#     events   = acc_sub,
-#     samples  = smp_buf,
-#     w        = w,
-#     bw       = bw,
-#     kernel   = nkde_kernel,  # "quartic"
-#     div      = "bw",         # IMPORTANT with POINT samples
-#     method   = nkde_method,  # "simple"
-#     digits   = 6,            # slightly less rounding to avoid vertex collapse
-#     sparse   = nkde_sparse,  # keep zeros
-#     verbose  = TRUE
-#   )
-#   
-#   smp_buf$density <- as.numeric(dens)
-#   
-#   # Keep only samples INSIDE the unbuffered province
-#   smp_out <- smp_buf[st_intersects(smp_buf, prov_row, sparse = FALSE), , drop = FALSE]
-#   if (nrow(smp_out) == 0) return(NULL)
-#   
-#   smp_out
-# }
-
-
-
-
-
-

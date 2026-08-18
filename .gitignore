@@ -1,0 +1,44 @@
+# OS/editor metadata
+.DS_Store
+**/.DS_Store
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+
+# Local environments and secrets
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+
+# Local data, copied repositories, and scratch work
+data/
+raw/
+processed/
+outputs/
+result/
+results/
+VisionToRisk_spare/
+misc/
+
+# Generated analysis artifacts
+hotspot_analysis/shap_outputs/
+hotspot_analysis/*_spare.ipynb
+hotspot_analysis/tuned_model_comparison.csv
+tuned_model_comparison.csv
+Visualisation_NKDE.ipynb
+
+# Generated figures kept out of the GitHub source tree
+SHAP_direction.png
+gaussian_kernel_3d.png
+kde_concept_3d.*
+kde_gaussian_contour.png
+kde_gaussian_heatmap.png
+kde_grid_schematic.*
+nkde_clean_schematic.png
+nkde_kernel.png
+nkde_process.png
+nkde_snap.png
+fig/mapillary_image_found.png
+vlm/mapillary_image_found.ipynb
